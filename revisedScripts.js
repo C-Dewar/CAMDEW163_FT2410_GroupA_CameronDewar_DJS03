@@ -48,8 +48,12 @@ function renderGenres() {
   firstGenreOption.value = 'any';
   firstGenreOption.innerText = 'All Genres';
   genreFragment.appendChild(firstGenreOption);
+  //Sorting the genres alphabetically by the name
+  const sortedGenres = Object.entries(genres).sort((a, b) =>
+    a[1].localeCompare(b[1])
+  );
 
-  Object.entries(genres).forEach(([id, name]) => {
+  sortedGenres.forEach(([id, name]) => {
     const option = createElement('option');
     option.value = id;
     option.innerText = name;
@@ -67,7 +71,12 @@ function renderAuthors() {
   firstAuthorOption.innerText = 'All authors';
   authorsFragment.appendChild(firstAuthorOption);
 
-  Object.entries(authors).forEach(([id, name]) => {
+  //Sorting the authors alphabetically by author name
+  const sortedAuthors = Object.entries(genres).sort((a, b) =>
+    a[1].localeCompare(b[1])
+  );
+
+  sortedAuthors.forEach(([id, name]) => {
     const option = createElement('option');
     option.value = id;
     option.innerText = name;
