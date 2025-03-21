@@ -3,7 +3,14 @@ import { books, authors, genres, BOOKS_PER_PAGE } from './data.js';
 let page = 1;
 let matches = books;
 
-//Utility function to create an element with optional class name
+/**
+ * Utility function to create an element with optional class name
+ *
+ * @param {string} tag - The tag name of the element to create (e.g.,'div', 'button', etc)
+ * @param {string} [className=''] - Optional class name added to the element
+ * @returns {HTMLElement} The created DOM element
+ */
+
 function createElement(tag, className = '') {
   const element = document.createElement(tag);
   if (className) element.classList.add(className);
@@ -26,6 +33,7 @@ function renderBookPreview(book) {
 
 /**  Create a state variable to ensure that the inner HTML is only cleared upon a search submission, not when the showMore button is clicked, as they make use of the same function.*/
 let isSearch = false;
+let previousPageCount;
 
 //Render the book list, to show initial/landing page or search results
 function renderBookList(booksToRender) {
@@ -35,7 +43,6 @@ function renderBookList(booksToRender) {
   );
   if (isSearch) {
     document.querySelector('[data-list-items]').innerHTML = '';
-    isSearch = false; //Reset the search state variable/search flag
   }
   //Append the books to the list
   document.querySelector('[data-list-items]').appendChild(fragment);
@@ -72,7 +79,7 @@ function renderAuthors() {
   authorsFragment.appendChild(firstAuthorOption);
 
   //Sorting the authors alphabetically by author name
-  const sortedAuthors = Object.entries(genres).sort((a, b) =>
+  const sortedAuthors = Object.entries(authors).sort((a, b) =>
     a[1].localeCompare(b[1])
   );
 
@@ -104,16 +111,23 @@ function initialiseTheme() {
 
 //Update the showMore button text and disable it if there are no more books to display
 function updateShowMoreButton() {
-  const remainingBooks = matches.length - page * BOOKS_PER_PAGE;
   const showMoreButton = document.querySelector('[data-list-button]');
 
-  showMoreButton.innerHTML = `
+  if (isSearch) {
+    showMoreButton.innerHTML = `<span> Back to Library </span>`;
+    showMoreButton.disabled = false;
+    showMoreButton.dataset.action = 'back'; //Setting a flag to signify intended operation
+  } else {
+    const remainingBooks = matches.length - page * BOOKS_PER_PAGE;
+    showMoreButton.innerHTML = `
     <span> Show more </span>
     <span class="list__remaining">(${
       remainingBooks > 0 ? remainingBooks : 0
     })</span>
     `;
-  showMoreButton.disabled = remainingBooks <= 0;
+    showMoreButton.disabled = remainingBooks <= 0;
+    showMoreButton.dataset.action = `showMore`;
+  }
 }
 
 //Handle search form submission using filtering logic
@@ -123,6 +137,8 @@ function handleSearch(event) {
   const filters = Object.fromEntries(formData);
   //Set the search flag/search state variable to true, as a search is being performed
   isSearch = true;
+  //Store the number of pages loaded in the "library view" prior to searching
+  previousPageCount = page;
   //filter books based on search criteria
   const filteredBooks = filterBooks(filters);
   //Reset to the first page when a search is made
@@ -130,7 +146,7 @@ function handleSearch(event) {
   matches = filteredBooks;
   //   console.log('Filtered books:', filteredBooks);
   renderBookList(filteredBooks.slice(0, BOOKS_PER_PAGE));
-  updateShowMoreButton();
+  updateShowMoreButton(true); //Pass a flag/state indicating search mode in use
 
   //show message if there are no book matches
   const message = document.querySelector('[data-list-message]');
@@ -157,13 +173,25 @@ function filterBooks(filters) {
 
 //Handle showMore button click - i.e. load more books
 function handleShowMore() {
-  page += 1;
-  const booksToRender = matches.slice(
-    page * BOOKS_PER_PAGE,
-    (page + 1) * BOOKS_PER_PAGE
-  );
-  renderBookList(booksToRender);
-  updateShowMoreButton();
+  const showMoreButton = document.querySelector('[data-list-button]');
+
+  if (showMoreButton.dataset.action === 'back') {
+    //reset the previous library state
+    isSearch = false;
+    page = previousPageCount;
+    matches = books;
+    renderBookList(books.slice(0, page * BOOKS_PER_PAGE));
+    updateShowMoreButton(false);
+  } else {
+    //Previous/default "Show More" behaviour
+    page += 1;
+    const booksToRender = matches.slice(
+      (page - 1) * BOOKS_PER_PAGE,
+      page * BOOKS_PER_PAGE
+    );
+    renderBookList(booksToRender);
+    updateShowMoreButton();
+  }
 }
 
 //Handle book preview click
